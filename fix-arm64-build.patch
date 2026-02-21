@@ -1,0 +1,20 @@
+--- a/module/evdi_painter.c
++++ b/module/evdi_painter.c
+@@ -175,7 +175,7 @@
+ 	*count = 1;
+ }
+ 
+-#if KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++#if (KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)) && defined(CONFIG_X86)
+ static int copy_primary_pixels_on_xe(struct evdi_framebuffer *efb,
+ 			       char __user *buffer,
+ 			       int buf_byte_stride,
+@@ -220,7 +220,7 @@
+ 
+ 	EVDI_CHECKPT();
+ 
+-#if KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)
++#if (KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE || defined(EL8) || defined(EL9)) && defined(CONFIG_X86)
+ 	if (efb->is_from_xe)
+ 		return copy_primary_pixels_on_xe(efb, buffer, buf_byte_stride, max_x, max_y);
+ #endif

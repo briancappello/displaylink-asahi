@@ -42,6 +42,7 @@ Source9:  evdi.conf
 
 Patch0:   update-bundled-evdi-to-latest-release.patch
 Patch1:   el9-support-update.patch
+Patch2:   fix-arm64-build.patch
 
 BuildRequires:  gcc-c++
 BuildRequires:  libdrm-devel
@@ -101,6 +102,7 @@ cd evdi-%{version}
 %endif
 
 %patch -P 1 -p1
+%patch -P 2 -p1
 
 sed -i 's/\r//' README.md
 
