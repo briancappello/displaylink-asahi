@@ -4,7 +4,7 @@
 
 DAEMON_VERSION := 6.2.0-30
 VERSION        := 1.14.14
-RELEASE        := 1
+RELEASE        := 7
 
 #
 # Dependencies
@@ -36,8 +36,8 @@ TARGETS    := $(RPM) $(SRPM)
 
 # Use release found on GitHub instead of what comes in the
 # Displaylink download
-RPM_GITHUB_EVDI := $(ARCH)/displaylink-$(VERSION)-$(RELEASE)-github_evdi.$(ARCH).rpm
-SRPM_GITHUB_EVDI       := displaylink-$(VERSION)-$(RELEASE)-github_evdi.src.rpm
+RPM_GITHUB_EVDI := $(ARCH)/displaylink-$(VERSION)-$(RELEASE).github_evdi.$(ARCH).rpm
+SRPM_GITHUB_EVDI       := displaylink-$(VERSION)-$(RELEASE).github_evdi.src.rpm
 
 TARGETS_GITHUB_EVDI := $(RPM_GITHUB_EVDI) $(SRPM_GITHUB_EVDI)
 
@@ -68,7 +68,7 @@ endef
 # PHONY targets
 #
 
-.PHONY: all github rpm srpm rpm-github srpm-github devel main rawhide clean clean-rawhide clean-mainline clean-all versions
+.PHONY: all github rpm srpm rpm-github srpm-github devel main rawhide clean clean-rawhide clean-mainline clean-all versions install
 
 all: $(TARGETS)
 
@@ -82,6 +82,9 @@ srpm: $(RPM)
 rpm-github: $(RPM_GITHUB_EVDI)
 
 srpm-github: $(SRPM_GITHUB_EVDI)
+
+install: rpm-github
+	sudo dnf install $(RPM_GITHUB_EVDI)
 
 # Pull latest code from main branch
 devel: main
