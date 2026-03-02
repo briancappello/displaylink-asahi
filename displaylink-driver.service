@@ -1,7 +1,11 @@
 [Unit]
 Description=DisplayLink Driver Service
-After=display-manager.service
-Conflicts=getty@tty7.service
+# Opt out of automatic ordering against shutdown.target and graphical.target.
+# Without this, systemd stops the service when tearing down suspend.target on
+# resume, which races with the sleep hook's restart and prevents recovery.
+DefaultDependencies=no
+After=systemd-udevd.service
+Conflicts=shutdown.target
 
 [Service]
 ExecStartPre=/sbin/modprobe evdi
@@ -9,3 +13,10 @@ ExecStart=/usr/libexec/displaylink/DisplayLinkManager
 Restart=always
 WorkingDirectory=/usr/libexec/displaylink
 RestartSec=5
+# DisplayLinkManager ignores SIGTERM and SIGABRT. Use SIGKILL directly so
+# that systemctl stop/restart completes in ~1 second instead of waiting
+# through two 5-second timeout cycles (SIGTERM → SIGABRT → SIGKILL = 13s).
+# Fedora's 10-timeout-abort.conf sets TimeoutStopFailureMode=abort which
+# adds an extra SIGABRT+wait cycle; KillSignal=SIGKILL bypasses all of that.
+KillSignal=SIGKILL
+TimeoutStopSec=5

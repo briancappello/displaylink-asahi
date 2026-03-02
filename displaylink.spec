@@ -1,6 +1,6 @@
 %{!?_daemon_version:%global _daemon_version 6.2.0-30}
 %{!?_version:%global _version 1.14.14}
-%{!?_release:%global _release 1}
+%{!?_release:%global _release 7}
 
 # Disable RPATH since DisplayLinkManager contains this.
 # Fedora 35 enforces this check and will stop rpmbuild from
@@ -42,6 +42,7 @@ Source9:  evdi.conf
 
 Patch0:   update-bundled-evdi-to-latest-release.patch
 Patch1:   el9-support-update.patch
+Patch2:   fix-arm64-build.patch
 
 BuildRequires:  gcc-c++
 BuildRequires:  libdrm-devel
@@ -101,6 +102,7 @@ cd evdi-%{version}
 %endif
 
 %patch -P 1 -p1
+%patch -P 2 -p1
 
 sed -i 's/\r//' README.md
 
@@ -263,6 +265,48 @@ fi
 %systemd_postun_with_restart displaylink-driver.service
 
 %changelog
+* Sun Feb 22 2026 Brian <brian@brian-macbookpro> 1.14.14-7
+- Rewrite sleep hook: replace upstream PmMessagesPort IPC with direct
+  systemctl stop/start — the named pipes are unreliable (may be regular files
+  or missing, causing the suspend hook to block or corrupt them). Stop the
+  service in pre-suspend, start it in post-resume, and re-trigger udev add
+  events so DisplayLinkManager rediscovers the dock. Use KillSignal=SIGKILL
+  in the service unit since DisplayLinkManager ignores SIGTERM and SIGABRT,
+  reducing stop time from ~13s to <1s.
+
+* Sun Feb 22 2026 Brian <brian@brian-macbookpro> 1.14.14-6
+- Fix displays not resuming after sleep: run service restart synchronously in
+  the sleep hook instead of a background subshell (systemd kills the child when
+  the hook exits); use 'restart' instead of 'start' since the service stays
+  active across suspend with DefaultDependencies=no; fix udev.sh exit code 2
+  errors by replacing top-level 'return' with 'exit' (return outside a function
+  fails when the script is invoked directly by udev rather than sourced)
+
+* Sun Feb 22 2026 Brian <brian@brian-macbookpro> 1.14.14-5
+- Fix race between sleep hook and udev remove: keep /run/displaylink-suspending
+  alive until the background restart job completes instead of removing it in the
+  resume hook, preventing udev stop_service() from racing past the guard
+
+* Sun Feb 22 2026 Brian <brian@brian-macbookpro> 1.14.14-4
+- Fix service never restarting after resume: set DefaultDependencies=no so
+  systemd does not stop the service during suspend target teardown, add
+  Conflicts=shutdown.target and After=systemd-udevd.service for correct
+  ordering, and set TimeoutStopSec=5 since DisplayLinkManager ignores SIGTERM
+
+* Sun Feb 22 2026 Brian <brian@brian-macbookpro> 1.14.14-3
+- Fix external displays not detected after wake from sleep on platforms where
+  the xHCI controller reinitialises on resume (e.g. Apple Silicon): write a
+  suspend timestamp in the pre-suspend sleep hook so that udev stop_service()
+  ignores transient USB disconnect events during the wake window, and schedule
+  a background restart of DisplayLinkManager from the post-resume sleep hook
+  to recover after systemd stops the service during suspend target teardown
+
+* Sun Feb 22 2026 Brian <brian@brian-macbookpro> 1.14.14-2
+- Fix external displays not detected after wake from sleep on platforms with
+  xHCI reinit on resume (e.g. Apple Silicon): guard stop_service() in udev.sh
+  against firing during suspend/resume, and restart DisplayLinkManager in the
+  sleep hook if it died during suspend rather than writing to a dead IPC pipe
+
 * Thu Feb 12 2026 Michael L. Young <elgueromexicano@gmail.com> 1.14.14-1
 - Update to evdi v1.14.14
 - Add patch that is being submitted to upstream to fixup EL 9
